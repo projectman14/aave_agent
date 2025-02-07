@@ -178,7 +178,7 @@ async function initializeAgent() {
       throw new Error("USER_PRIVATE_KEY not found in environment variables");
     }
 
-    const account = privateKeyToAccount('0x58eb1aa66eee85f81f4708ba72e9927519c668e702ba586e40c8fe45ef7018c9');
+    const account = privateKeyToAccount(`0x${process.env.USER_PRIVATE_KEY}`);
     
     const client = createWalletClient({
       account,
