@@ -1,0 +1,6 @@
+# To prevent API keys from being exposed
+.env
+wallet_data.txt
+
+# Large files, can be installed through npm install
+node_modules/
