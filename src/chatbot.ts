@@ -460,46 +460,57 @@ async function runAutonomousMode(agent: any, config: any, interval = 10) {
   }
 }
 
-async function runChatMode(agent: any, config: any) {
-  console.log("Starting chat mode... Type 'exit' to end.");
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const question = (prompt: string): Promise<string> =>
-    new Promise((resolve) => rl.question(prompt, resolve));
+export async function runChatMode(agent: any, config: any, textInp: string) {
+  console.log("Starting chat mode...");
 
   try {
-    while (true) {
-      const userInput = await question("\nPrompt: ");
-
-      if (userInput.toLowerCase() === "exit") {
-        break;
-      }
-
-      const stream = await agent.stream(
-        { messages: [new HumanMessage(userInput)] },
-        config,
-      );
-
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
-      }
+    // Validate input
+    if (!textInp || typeof textInp !== 'string') {
+      throw new Error('Input text must be a non-empty string');
     }
+
+    // Initialize arrays to store messages
+    const agentMessages: string[] = [];
+    const toolsMessages: string[] = [];
+
+    // Create the message with the input text
+    const stream = await agent.stream(
+      { 
+        messages: [{
+          type: 'human',
+          content: textInp
+        }]
+      },
+      config
+    );
+
+    // Process the stream
+    for await (const chunk of stream) {
+      if ("agent" in chunk && chunk.agent?.messages?.[0]?.content) {
+        agentMessages.push(chunk.agent.messages[0].content);
+        console.log(chunk.agent.messages[0].content);
+      } else if ("tools" in chunk && chunk.tools?.messages?.[0]?.content) {
+        toolsMessages.push(chunk.tools.messages[0].content);
+        console.log(chunk.tools.messages[0].content);
+      }
+      console.log("-------------------");
+    }
+
+    // Return the collected data as a JSON object
+    return {
+      status: "success",
+      data: {
+        agentMessages,
+        toolsMessages
+      }
+    };
+
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error:", error.message);
-    }
-    process.exit(1);
-  } finally {
-    rl.close();
+    // Return error in JSON format
+    return {
+      status: "error",
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    };
   }
 }
 
@@ -532,17 +543,14 @@ async function chooseMode(): Promise<"chat" | "auto"> {
   }
 }
 
-async function main() {
+export async function main() {
   try {
+    console.log("Starting AAVE-enabled Agent...");
     validateEnvironment();
     const { agent, config } = await initializeAgent();
-    const mode = await chooseMode();
 
-    if (mode === "chat") {
-      await runChatMode(agent, config);
-    } else {
-      await runAutonomousMode(agent, config);
-    }
+    return { agent, config };
+
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error:", error.message);
@@ -551,10 +559,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  console.log("Starting AAVE-enabled Agent...");
-  main().catch((error) => {
-    console.error("Fatal error:", error);
-    process.exit(1);
-  });
-}
+// if (require.main === module) {
+//   console.log("Starting AAVE-enabled Agent...");
+//   main().catch((error) => {
+//     console.error("Fatal error:", error);
+//     process.exit(1);
+//   });
+// }
