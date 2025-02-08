@@ -1,7 +1,7 @@
 //@ts-nocheck
 import express from 'express';
 import cors from 'cors';
-import { main, runChatMode } from './chatbot';
+import { main, runChatMode } from './src/chatbot';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
